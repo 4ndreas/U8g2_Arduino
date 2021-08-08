@@ -1815,6 +1815,25 @@ void u8x8_SetPin_8Bit_8080(u8x8_t *u8x8, uint8_t d0, uint8_t d1, uint8_t d2, uin
   u8x8_SetPin(u8x8, U8X8_PIN_RESET, reset);
 }
 
+void u8x8_SetPin_8Bit_8080(u8x8_t *u8x8, uint8_t data, uint8_t wr, uint8_t cs, uint8_t dc, uint8_t reset)
+{
+  // u8x8_SetPin(u8x8, U8X8_PIN_D0, d0);
+  // u8x8_SetPin(u8x8, U8X8_PIN_D1, d1);
+  // u8x8_SetPin(u8x8, U8X8_PIN_D2, d2);
+  // u8x8_SetPin(u8x8, U8X8_PIN_D3, d3);
+  // u8x8_SetPin(u8x8, U8X8_PIN_D4, d4);
+  // u8x8_SetPin(u8x8, U8X8_PIN_D5, d5);
+  // u8x8_SetPin(u8x8, U8X8_PIN_D6, d6);
+  // u8x8_SetPin(u8x8, U8X8_PIN_D7, d7);
+
+  GPIOA -> ODR = data;
+
+  u8x8_SetPin(u8x8, U8X8_PIN_E, wr);
+  u8x8_SetPin(u8x8, U8X8_PIN_CS, cs);
+  u8x8_SetPin(u8x8, U8X8_PIN_DC, dc);
+  u8x8_SetPin(u8x8, U8X8_PIN_RESET, reset);
+}
+
 
 #ifdef _obsolete_com_specific_setup
 void u8x8_Setup_8Bit_8080(u8x8_t *u8x8, u8x8_msg_cb display_cb, uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3, uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7, uint8_t wr, uint8_t cs, uint8_t dc, uint8_t reset)

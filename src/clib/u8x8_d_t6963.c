@@ -59,7 +59,7 @@ static const uint8_t u8x8_d_t6963_powersave1_seq[] = {
 uint8_t u8x8_d_t6963_common(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr)
 {
   uint8_t c, i;
-  uint16_t y;
+  uint16_t y, x, adr, offset;
   uint8_t *ptr;
   switch(msg)
   {
@@ -76,10 +76,18 @@ uint8_t u8x8_d_t6963_common(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *ar
       else
 	u8x8_cad_SendSequence(u8x8, u8x8_d_t6963_powersave1_seq);
       break;
+
+
     case U8X8_MSG_DISPLAY_DRAW_TILE:
-      y = (((u8x8_tile_t *)arg_ptr)->y_pos);
-      y*=8;
-      y*= u8x8->display_info->tile_width;
+      // y = (((u8x8_tile_t *)arg_ptr)->y_pos);
+      // y*=8;
+      // y*= u8x8->display_info->tile_width;
+      y = (((u8x8_tile_t *)arg_ptr)->y_pos) ;
+
+      x = u8x8->display_info->tile_height;
+
+      offset = u8x8->display_info->tile_width;
+      adr = y * 8 * offset;
       /* x = ((u8x8_tile_t *)arg_ptr)->x_pos; x is ignored... no u8x8 support */
       //u8x8->gpio_and_delay_cb(u8x8, U8X8_MSG_DELAY_NANO, 200, NULL);	/* extra dely required */
       u8x8_cad_StartTransfer(u8x8);
@@ -94,24 +102,28 @@ uint8_t u8x8_d_t6963_common(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *ar
       */
       c = ((u8x8_tile_t *)arg_ptr)->cnt;	/* number of tiles */
       ptr = ((u8x8_tile_t *)arg_ptr)->tile_ptr;	/* data ptr to the tiles */
-      for( i = 0; i < 8; i++ )
+      for( i = 0; i < x; i++ )
       {
-	u8x8_cad_SendArg(u8x8, y&255);
-	u8x8_cad_SendArg(u8x8, y>>8);
-	u8x8_cad_SendCmd(u8x8, 0x024 );	/* set adr */
-	u8x8_cad_SendCmd(u8x8, 0x0b0 );	/* auto write start */
-	
-	
-	//c = ((u8x8_tile_t *)arg_ptr)->cnt;	/* number of tiles */
-	u8x8_cad_SendData(u8x8, c, ptr);	/* note: SendData can not handle more than 255 bytes, send one line of data */
-	
-	u8x8_cad_SendCmd(u8x8, 0x0b2 );	/* auto write reset */
-	ptr += u8x8->display_info->tile_width;
-	y += u8x8->display_info->tile_width;
+        u8x8_cad_SendArg(u8x8, adr&255);
+        u8x8_cad_SendArg(u8x8, adr>>8);
+        u8x8_cad_SendCmd(u8x8, 0x024 );	/* set adr */
+        u8x8_cad_SendCmd(u8x8, 0x0b0 );	/* auto write start */
+
+        //c = ((u8x8_tile_t *)arg_ptr)->cnt;	/* number of tiles */
+        u8x8_cad_SendData(u8x8, c, ptr);	/* note: SendData can not handle more than 255 bytes, send one line of data */
+        // u8x8_cad_SendData(u8x8, c, buffer);	/* note: SendData can not handle more than 255 bytes, send one line of data */
+        
+        u8x8_cad_SendCmd(u8x8, 0x0b2 );	/* auto write reset */
+
+        ptr += u8x8->display_info->tile_width ; // ;
+        // adr += (u8x8->display_info->pixel_width / 8);
+        adr += u8x8->display_info->tile_width ;
       }
 
       u8x8_cad_EndTransfer(u8x8);
-      //u8x8->gpio_and_delay_cb(u8x8, U8X8_MSG_DELAY_NANO, 200, NULL);	/* extra dely required */
+      // u8x8->gpio_and_delay_cb(u8x8, U8X8_MSG_DELAY_NANO, 200, NULL);	/* extra dely required */
+
+
 
       break;
     default:
@@ -232,6 +244,8 @@ static const u8x8_display_info_t u8x8_t6963_240x64_display_info =
 };
 
 
+
+
 /* 240x64 */
 static const uint8_t u8x8_d_t6963_240x64_init_seq[] = {
   U8X8_DLY(100),
@@ -281,6 +295,105 @@ uint8_t u8x8_d_t6963_240x64(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *ar
     case U8X8_MSG_DISPLAY_INIT:
       u8x8_d_helper_display_init(u8x8);
       u8x8_cad_SendSequence(u8x8, u8x8_d_t6963_240x64_init_seq);
+      break;
+    default:
+      return u8x8_d_t6963_common(u8x8, msg, arg_int, arg_ptr);
+  }
+  return 1;
+}
+
+static const u8x8_display_info_t u8x8_t6963_480x64_display_info =
+{
+  /* chip_enable_level = */ 0,
+  /* chip_disable_level = */ 1,
+  
+  /* post_chip_enable_wait_ns = */ 110,	/* T6963 Datasheet p30 */
+  /* pre_chip_disable_wait_ns = */ 100,	/* T6963 Datasheet p30 */
+  /* reset_pulse_width_ms = */ 1, 
+  /* post_reset_wait_ms = */ 6, 
+  /* sda_setup_time_ns = */ 20,		
+  /* sck_pulse_width_ns = */  140,	
+  /* sck_clock_hz = */ 1000000UL,	/* since Arduino 1.6.0, the SPI bus speed in Hz. Should be  1000000000/sck_pulse_width_ns */
+  /* spi_mode = */ 0,		
+  /* i2c_bus_clock_100kHz = */ 4,
+  /* data_setup_time_ns = */ 80,
+  /* write_pulse_width_ns = */ 80,
+  /* tile_width = */ 60,    /* bytes */
+  /* tile_hight = */ 8,     /* bytes */
+  /* default_x_offset = */ 0,
+  /* flipmode_x_offset = */ 0,
+  /* pixel_width = */ 480 ,
+  /* pixel_height = */ 64
+};
+
+/* Dual - H - 1 Screen */
+/* MDS - L  */
+/* MD0 - L  */
+/* MD1 - L  */
+/* 8 Lines   */
+/* 64 V-Dots */
+
+/* MD2 - L  */
+/* MD3 - L  */
+/* Columns 80  */
+
+/* FS0 - L   */
+/* FS1 - H   */
+/* Font 6x8  */
+/* mod to L -> Font 8x8 */
+
+
+/* 480x64 */
+static const uint8_t u8x8_d_t6963_480x64_init_seq[] = {
+  U8X8_DLY(100),
+  U8X8_START_TRANSFER(),             	/* enable chip, delay is part of the transfer start */
+  U8X8_DLY(100),
+  
+  U8X8_AAC(0x00,0x00,0x021),	/* low, high, set cursor pos */
+  U8X8_AAC(0x00,0x00,0x022),	/* low, high, set offset */
+  U8X8_AAC(0x00,0x00,0x040),	/* low, high, set text home */
+  U8X8_AAC(480/8,0x00,0x041),	/* low, high, set text columns */
+  U8X8_AAC(0x00,0x00,0x042),	/* low, high, graphics home */  
+  U8X8_AAC(480/8,0x00,0x043),	/* low, high, graphics columns */
+  U8X8_DLY(2),					/* delay 2ms */
+  // mode set
+  // 0x080: Internal CG, OR Mode
+  // 0x081: Internal CG, EXOR Mode
+  // 0x083: Internal CG, AND Mode
+  // 0x088: External CG, OR Mode
+  // 0x089: External CG, EXOR Mode
+  // 0x08B: External CG, AND Mode
+  U8X8_C(0x080),            			/* mode register: OR Mode, Internal Character Mode */
+  // display mode
+  // 0x090: Display off
+  // 0x094: Graphic off, text on, cursor off, blink off
+  // 0x096: Graphic off, text on, cursor on, blink off
+  // 0x097: Graphic off, text on, cursor on, blink on
+  // 0x098: Graphic on, text off, cursor off, blink off
+  // 0x09a: Graphic on, text off, cursor on, blink off
+  // ...
+  // 0x09c: Graphic on, text on, cursor off, blink off
+  // 0x09f: Graphic on, text on, cursor on, blink on
+  U8X8_C(0x090),                             /* All Off */
+  U8X8_AAC(0x00,0x00,0x024),	/* low, high, set adr pointer */
+  
+  U8X8_DLY(100),
+  U8X8_END_TRANSFER(),             	/* disable chip */
+  U8X8_DLY(100),
+};
+
+
+
+uint8_t u8x8_d_t6963_480x64(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr)
+{
+  switch(msg)
+  {
+    case U8X8_MSG_DISPLAY_SETUP_MEMORY:
+      u8x8_d_helper_display_setup_memory(u8x8, &u8x8_t6963_480x64_display_info);
+      break;
+    case U8X8_MSG_DISPLAY_INIT:
+      u8x8_d_helper_display_init(u8x8);
+      u8x8_cad_SendSequence(u8x8, u8x8_d_t6963_480x64_init_seq);
       break;
     default:
       return u8x8_d_t6963_common(u8x8, msg, arg_int, arg_ptr);
